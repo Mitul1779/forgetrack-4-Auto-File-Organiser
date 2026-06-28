@@ -1,5 +1,6 @@
 import pathlib
-from constant.py import FILE_CATEGORIES
+from constant import FILE_CATEGORIES
+import shutil
 
 
 def folder_path():
@@ -13,9 +14,6 @@ def folder_path():
             print("Path is not a directory.")
             continue
         return path
-
-def validate_folder():
-    pass
 
 def scan_folder(path):
     files = []
@@ -119,14 +117,75 @@ def duplicate_handler(source, destination, duplicate_mode):
         return destination, "rename"
     
 
-def move_file():
-    pass
+def move_file(source, destination):
+    try:
+        if destination.exists():
+            destination.unlink() 
 
-def write_log():
-    pass    
+        shutil.move(str(source), str(destination))
+        print(f"Moved: {source.name} -> {destination.parent.name}")
+        return True
 
-def display_summary():
-    pass
+    except Exception as e:
+        print(f"Error moving {source.name}: {e}")
+        return False
+
+def write_log(action, source, destination=None):
+    with open("log.txt", "a") as file:
+        if destination is not None:
+            file.write(f"{action} | {source.name} -> {destination.parent.name}/{destination.name}\n")
+        else:
+            file.write(f"{action} | {source.name}\n")   
+
+def display_summary(moved, skipped, renamed, failed):
+    print("\nOrganization Complete!")
+    print(f"Moved   : {moved}")
+    print(f"Renamed : {renamed}")
+    print(f"Skipped : {skipped}")
+    print(f"Failed  : {failed}")
 
 def main():
-    pass
+    path = folder_path()
+    files = scan_folder(path)
+    if not files:
+        print("Folder contains no files.")
+        return
+    duplicate_mode = None
+
+    moved = 0
+    skipped = 0
+    renamed = 0
+    failed = 0
+
+    for file in files:
+        category = categorize_file(file)
+        category_folder = create_category_folder(path, category)
+        destination = category_folder / file.name
+        original_destination = destination
+
+        if destination.exists():
+            destination, duplicate_mode = duplicate_handler(
+                file,
+                destination,
+                duplicate_mode
+            )
+
+            if destination is not None and destination != original_destination:
+                renamed += 1
+
+        if destination is not None:
+            if move_file(file, destination):
+                if destination != original_destination:
+                    write_log("Renamed and Moved", file, destination)
+                else:
+                    write_log("Moved", file, destination)
+                    
+                moved += 1
+            else:
+                write_log("Failed to move", file)
+                failed += 1
+        else:
+            write_log("Skipped", file)
+            skipped += 1
+
+    display_summary(moved, skipped, renamed, failed)
