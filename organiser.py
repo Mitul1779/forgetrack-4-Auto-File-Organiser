@@ -131,7 +131,7 @@ def move_file(source, destination):
         return False
 
 def write_log(action, source, destination=None):
-    with open("log.txt", "a") as file:
+    with open("moves.txt", "a") as file:
         if destination is not None:
             file.write(f"{action} | {source.name} -> {destination.parent.name}/{destination.name}\n")
         else:
@@ -146,7 +146,9 @@ def display_summary(moved, skipped, renamed, failed):
 
 def main():
     path = folder_path()
+    print("Scanning folder...")
     files = scan_folder(path)
+    print(f"Found {len(files)} files.")
     if not files:
         print("Folder contains no files.")
         return
@@ -189,3 +191,7 @@ def main():
             skipped += 1
 
     display_summary(moved, skipped, renamed, failed)
+
+
+if __name__ == "__main__":
+    main()
